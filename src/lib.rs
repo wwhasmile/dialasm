@@ -27,7 +27,62 @@ pub struct Dialogue {
 }
 
 impl Dialogue {
-    pub fn parse(src: &str) -> Dialogue {
+    pub fn example() -> Dialogue {
+        let entries = vec![
+            DialogueEntry::NameChange(String::from("m"), String::from("Maria")),
+            DialogueEntry::NameChange(String::from("l"), String::from("Leon")),
+            DialogueEntry::Phrase(
+                vec![String::from("m")],
+                String::from("Hello, my name is Maria!"),
+            ),
+            DialogueEntry::Phrase(
+                vec![String::from("l")],
+                String::from("Hello, my name is Leon."),
+            ),
+            DialogueEntry::Phrase(
+                vec![String::from("m"), String::from("l")],
+                String::from("And we can talk together as well!"),
+            ),
+            DialogueEntry::Phrase(
+                vec![String::from("m")],
+                String::from("Now, you pick where to go!"),
+            ),
+            DialogueEntry::Choice(vec![
+                DialogueChoice {
+                    text: String::from("I pick A"),
+                    label: String::from("a"),
+                },
+                DialogueChoice {
+                    text: String::from("I pick B"),
+                    label: String::from("b"),
+                },
+            ]),
+            DialogueEntry::Phrase(vec![String::from("m")], String::from("Excellent choice!")),
+            DialogueEntry::Jump(String::from("last")),
+            DialogueEntry::Phrase(
+                vec![String::from("l")],
+                String::from("Certainly better choice."),
+            ),
+            DialogueEntry::Phrase(
+                vec![String::from("l"), String::from("m")],
+                String::from("Now, last choice... well, you only have one."),
+            ),
+            DialogueEntry::Choice(vec![DialogueChoice {
+                text: String::from("Byeee!"),
+                label: String::from("end"),
+            }]),
+            DialogueEntry::Phrase(vec![String::from("m")], String::from("Goodbye!")),
+        ];
+        let labels = HashMap::from([
+            (String::from("a"), 7),
+            (String::from("b"), 9),
+            (String::from("last"), 10),
+            (String::from("end"), 12),
+        ]);
+        Dialogue { entries, labels }
+    }
+
+    pub fn parse(_src: &str) -> Dialogue {
         todo!();
     }
 
@@ -36,7 +91,7 @@ impl Dialogue {
     }
 
     pub fn label(&self, label: &str) -> Option<usize> {
-        self.labels.get(label).map(|s| *s)
+        self.labels.get(label).copied()
     }
 
     pub fn entries(&self) -> &[DialogueEntry] {
