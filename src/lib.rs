@@ -82,7 +82,7 @@ impl Dialogue {
         Dialogue { entries, labels }
     }
 
-    pub fn parse(_src: &str) -> Dialogue {
+    pub fn parse(_src: &str) -> Option<Dialogue> {
         todo!();
     }
 

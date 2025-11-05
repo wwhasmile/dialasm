@@ -26,7 +26,11 @@ fn main() -> Result<(), i32> {
             println!("Failed to open file '{}'", path);
             return Err(1);
         };
-        Dialogue::parse(&contents)
+        let Some(dlg) = Dialogue::parse(&contents) else {
+            println!("Failed to parse dialogue '{}'", path);
+            return Err(1);
+        };
+        dlg
     };
 
     let mut pointer: usize = 0;

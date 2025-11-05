@@ -10,7 +10,7 @@ mod rules {
     #[test]
     fn empty_dialogue() {
         const INPUT: &str = "";
-        let dlg = Dialogue::parse(INPUT);
+        let dlg = Dialogue::parse(INPUT).expect("Expected to parse valid input");;
         assert_eq!(dlg.len(), 0);
         assert_eq!(dlg.label_count(), 0);
     }
@@ -18,7 +18,7 @@ mod rules {
     #[test]
     fn single_line_dialogue() {
         const INPUT: &str = ": \"Hello.\";";
-        let dlg = Dialogue::parse(INPUT);
+        let dlg = Dialogue::parse(INPUT).expect("Expected to parse valid input");;
         let entries = dlg.entries();
         let labels = dlg.labels();
         let labels_to_check = HashMap::new();
@@ -32,7 +32,7 @@ mod rules {
     #[test]
     fn single_label_dialogue() {
         const INPUT: &str = "damn:";
-        let dlg = Dialogue::parse(INPUT);
+        let dlg = Dialogue::parse(INPUT).expect("Expected to parse valid input");;
         let entries = dlg.entries();
         let labels = dlg.labels();
         let mut labels_to_check = HashMap::new();
@@ -44,7 +44,7 @@ mod rules {
     #[test]
     fn multiple_label_dialogue() {
         const INPUT: &str = "damn:\ntest:";
-        let dlg = Dialogue::parse(INPUT);
+        let dlg = Dialogue::parse(INPUT).expect("Expected to parse valid input");;
         let entries = dlg.entries();
         let labels = dlg.labels();
         let mut labels_to_check = HashMap::new();
@@ -59,7 +59,7 @@ mod rules {
         const INPUT: &str = "@m = \"Maria\";
         @m: \"Hello!\"
         : \"Hi!\"";
-        let dlg = Dialogue::parse(INPUT);
+        let dlg = Dialogue::parse(INPUT).expect("Expected to parse valid input");;
         let entries = dlg.entries();
         let labels = dlg.labels();
         let labels_to_check = HashMap::new();
@@ -77,7 +77,7 @@ mod rules {
     #[test]
     fn jump_dialogue() {
         const INPUT: &str = "jump fall;";
-        let dlg = Dialogue::parse(INPUT);
+        let dlg = Dialogue::parse(INPUT).expect("Expected to parse valid input");;
         let entries = dlg.entries();
         let labels = dlg.labels();
         let labels_to_check = HashMap::new();
@@ -88,7 +88,7 @@ mod rules {
     #[test]
     fn choice_dialogue() {
         const INPUT: &str = "? (\"A!\": a | \"B!\": b | \"C!\": c);";
-        let dlg = Dialogue::parse(INPUT);
+        let dlg = Dialogue::parse(INPUT).expect("Expected to parse valid input");
         let entries = dlg.entries();
         let labels = dlg.labels();
         let labels_to_check = HashMap::new();
