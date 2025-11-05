@@ -1,0 +1,23 @@
+WHITESPACE = _{ " " | "\r" | "\n" | "\t" }
+
+identifier = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+string_content = { (!"\"" ~ (!"\\" ~ ANY) | "\\" ~ ANY)* }
+string_literal = ${ "\"" ~ string_content ~ "\"" }
+
+handle = ${ "@" ~ identifier }
+handle_group = { "(" ~ handle ~ ("&" ~ handle)* ~ ")" }
+choice = { string_literal ~ ":" ~ identifier }
+choice_group = { "(" ~ choice ~ ("|" ~ choice)* ~ ")" }
+
+label = @{ identifier ~ ":" }
+name_statement = { handle ~ "=" ~ string_literal }
+phrase_statement = { (handle | handle_group)? ~ ":" ~ string_literal }
+choice_statement = { "?" ~ (choice | choice_group) }
+jump_statement = { "jump" ~ identifier }
+
+dialogue_statement = { (name_statement | phrase_statement | choice_statement | jump_statement) ~ ";" }
+
+statement = { dialogue_statement | label }
+comment = _{ ("/*" ~ (!"*/" ~ ANY)* ~ "*/") }
+
+program = { SOI ~ (statement | comment)* ~ EOI }
