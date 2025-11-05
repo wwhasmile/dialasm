@@ -3,6 +3,8 @@ name = "dialasm"
 version = "0.1.0"
 edition = "2024"
 authors = [ "Arsenii Filiushkin" ]
+license = "MIT"
+description = "DialASM - simple pest based dialogue DSL for Rust"
 
 [dependencies]
 pest = "2.8.3"
