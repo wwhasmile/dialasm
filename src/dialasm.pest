@@ -9,7 +9,7 @@ handle_group = { "(" ~ handle ~ ("&" ~ handle)* ~ ")" }
 choice = { string_literal ~ ":" ~ identifier }
 choice_group = { "(" ~ choice ~ ("|" ~ choice)* ~ ")" }
 
-label = @{ identifier ~ ":" }
+label = ${ identifier ~ ":" }
 name_statement = { handle ~ "=" ~ string_literal }
 phrase_statement = { (handle | handle_group)? ~ ":" ~ string_literal }
 choice_statement = { "?" ~ (choice | choice_group) }
