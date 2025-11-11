@@ -125,10 +125,10 @@ What kind of dialogue is without choices? ...kinetic one. But `DialASM` supports
 
 `?: ("This is a choice a": a | "This is a choice b": b);`
 
-It starts with `?:` characters, and then is followed by the actual choices. Single choice is defined by it's text and jump label.
+It starts with `?` character, and then is followed by the actual choices. Single choice is defined by it's text and jump label.
 Single choice can also be made:
 
-`?: "Bye": bye;`
+`? "Bye": bye;`
 
 ### Jumps
 Very useful thing that allows up to jump to any spot of the dialogue.
