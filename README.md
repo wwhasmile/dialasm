@@ -41,14 +41,14 @@ use std::{
 
 use dialasm::Dialogue;
 
-fn main() -> Result<(), i32> {
+fn main() {
     let Ok(contents) = fs::read_to_string("test.dlg") else {
         println!("Failed to open file 'test.dlg'");
-        return Err(1);
+        return;
     };
     let Some(dlg) = Dialogue::parse(&contents) else {
         println!("Failed to parse dialogue 'test.dlg'");
-        return Err(1);
+        return;
     };
 
     let mut pointer: usize = 0;
@@ -60,10 +60,8 @@ fn main() -> Result<(), i32> {
                 pointer += 1;
             }
             dialasm::DialogueEntry::Phrase(h, t) => {
-                let speaker_names: Vec<&String> = h.iter().map(|x| {
-                    speakers[x]
-                }).collect();
-                println!("{:?}: {}", speaker_names, t);
+                let speaker_names = h.iter().map(|x| speakers[x].clone()).collect::<Vec<String>>().join(" & ");
+                print!("{}: {}", speaker_names, t);
                 io::stdout().flush().expect("Failed to flush stdout");
                 let mut buffer = String::new();
                 io::stdin()
@@ -82,39 +80,21 @@ fn main() -> Result<(), i32> {
                     io::stdin()
                         .read_line(&mut buffer)
                         .expect("Failed to read line from stdin");
-                    if let Ok(idx) = buffer.trim_end().parse::<usize>() {
+                    if let Result::Ok(idx) = buffer.trim_end().parse::<usize>() {
                         if idx < 1 || idx > choices.len() {
                             println!("Invalid choice index");
                             continue;
                         }
                         proceed = true;
-                        let mut exit = false;
-                        pointer = dlg.label(&choices[idx - 1].label).unwrap_or_else(|| {
-                            println!("Label '{}' doesn't exist", choices[idx].label);
-                            exit = true;
-                            0
-                        });
-                        if exit {
-                            return Err(2);
-                        }
+                        pointer = dlg.label(&choices[idx - 1].label).unwrap();
                     }
                 }
             }
             dialasm::DialogueEntry::Jump(l) => {
-                let mut exit = false;
-                pointer = dlg.label(l).unwrap_or_else(|| {
-                    println!("Label '{}' doesn't exist", l);
-                    exit = true;
-                    0
-                });
-                if exit {
-                    return Err(2);
-                }
+                pointer = dlg.label(l).unwrap();
             }
         }
     }
-
-    Ok(())
 }
 ```
 `Dialogue::parse(src)` walks over every statement in the source text. There are two types of statements: dialogue statements which are responsible for the flow of the dialogue (all of them end with semicolon), and jump labels, either used by `jump` instructions, or by choices. What is parsed is then converted into `Dialogue` struct. It doesn't contain any logic of executing dialogues on it's own, but it contains data relevant for implementing the actual engine for executing it. It mainly contains array of entries which represent each statement in the source text, with the exception of jump labels which are stored separately and store indices for their respective entries. Jump labels can be accessed via instance function `Dialogue::label(name)`.

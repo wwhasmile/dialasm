@@ -1,6 +1,23 @@
-use std::{collections::HashMap, ops::Index};
+use std::{
+    collections::{HashMap, HashSet},
+    ops::Index,
+};
 
+use pest::{Parser, iterators::Pair};
 use pest_derive::Parser;
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum ParseError {
+    #[error("Invalid program")]
+    InvalidProgram,
+    #[error("Undefined speaker '{0}'")]
+    UndefinedSpeaker(String),
+    #[error("Undefined label '{0}'")]
+    UndefinedLabel(String),
+    #[error("Duplicate label '{0}'")]
+    DuplicateLabel(String),
+}
 
 #[derive(Parser)]
 #[grammar = "dialasm.pest"]
@@ -31,6 +48,10 @@ impl Dialogue {
         let entries = vec![
             DialogueEntry::NameChange(String::from("m"), String::from("Maria")),
             DialogueEntry::NameChange(String::from("l"), String::from("Leon")),
+            DialogueEntry::Phrase(
+                vec![],
+                String::from("This is a phrase told by... well, nobody."),
+            ),
             DialogueEntry::Phrase(
                 vec![String::from("m")],
                 String::from("Hello, my name is Maria!"),
@@ -74,16 +95,173 @@ impl Dialogue {
             DialogueEntry::Phrase(vec![String::from("m")], String::from("Goodbye!")),
         ];
         let labels = HashMap::from([
-            (String::from("a"), 7),
-            (String::from("b"), 9),
-            (String::from("last"), 10),
-            (String::from("end"), 12),
+            (String::from("a"), 8),
+            (String::from("b"), 10),
+            (String::from("last"), 11),
+            (String::from("end"), 13),
         ]);
         Dialogue { entries, labels }
     }
 
-    pub fn parse(_src: &str) -> Option<Dialogue> {
-        todo!();
+    pub fn parse(src: &str) -> Result<Dialogue, ParseError> {
+        let Ok(program) = DialasmParser::parse(Rule::program, src) else {
+            return Err(ParseError::InvalidProgram);
+        };
+        let mut program_inner = program.peek().unwrap().into_inner();
+        let mut labels = HashMap::new();
+        let mut entries = Vec::new();
+        let mut unknown_labels: HashSet<String> = HashSet::new();
+        let mut known_speakers: HashSet<String> = HashSet::new();
+        program_inner.try_fold(0, |idx, p| {
+            if p.as_rule() == Rule::EOI {
+                return Ok(idx);
+            }
+            let statement = p.into_inner().peek().unwrap();
+            if statement.as_rule() == Rule::label {
+                let n = statement.into_inner().peek().unwrap().as_str();
+                if labels.insert(n.to_string(), idx).is_some() {
+                    return Err(ParseError::DuplicateLabel(n.to_string()));
+                };
+                unknown_labels.remove(n);
+                return Ok(idx);
+            };
+            let statement = statement.into_inner().peek().unwrap();
+            match statement.as_rule() {
+                Rule::name_statement => {
+                    let result = Self::parse_name_statement(statement);
+                    if let DialogueEntry::NameChange(n, _) = &result {
+                        known_speakers.insert(n.clone());
+                    };
+                    entries.push(result);
+                }
+                Rule::phrase_statement => {
+                    let result = Self::parse_phrase_statement(statement);
+                    if let DialogueEntry::Phrase(n, _) = &result {
+                        n.iter().try_for_each(|n| {
+                            if !known_speakers.contains(n) {
+                                return Err(ParseError::UndefinedSpeaker(n.clone()));
+                            }
+                            Ok(())
+                        })?;
+                    };
+                    entries.push(result);
+                }
+                Rule::choice_statement => {
+                    let result = Self::parse_choice_statement(statement);
+                    if let DialogueEntry::Choice(n) = &result {
+                        n.iter().for_each(|n| {
+                            if !labels.contains_key(&n.label) {
+                                unknown_labels.insert(n.label.clone());
+                            }
+                        });
+                    }
+                    entries.push(result);
+                }
+                Rule::jump_statement => {
+                    let result = Self::parse_jump_statement(statement);
+                    if let DialogueEntry::Jump(n) = &result
+                        && !labels.contains_key(n)
+                    {
+                        unknown_labels.insert(n.clone());
+                    }
+                    entries.push(result);
+                }
+                _ => (),
+            };
+            Ok(idx + 1)
+        })?;
+        if !unknown_labels.is_empty() {
+            return Err(ParseError::UndefinedLabel(
+                unknown_labels.iter().next().unwrap().clone(),
+            ));
+        }
+        Ok(Dialogue { entries, labels })
+    }
+
+    fn parse_name_statement(pair: Pair<'_, Rule>) -> DialogueEntry {
+        let mut inner = pair.into_inner();
+        DialogueEntry::NameChange(
+            inner
+                .next()
+                .unwrap()
+                .into_inner()
+                .peek()
+                .unwrap()
+                .as_str()
+                .to_string(),
+            inner
+                .next()
+                .unwrap()
+                .into_inner()
+                .peek()
+                .unwrap()
+                .as_str()
+                .to_string(),
+        )
+    }
+
+    fn parse_phrase_statement(pair: Pair<'_, Rule>) -> DialogueEntry {
+        let mut inner = pair.into_inner();
+        let mut first = inner.next().unwrap();
+        let speakers = if first.as_rule() == Rule::handle_group {
+            let result = first
+                .into_inner()
+                .map(|n| n.into_inner().peek().unwrap().as_str().to_string())
+                .collect();
+            first = inner.next().unwrap();
+            result
+        } else if first.as_rule() == Rule::handle {
+            let result = vec![first.into_inner().peek().unwrap().as_str().to_string()];
+            first = inner.next().unwrap();
+            result
+        } else {
+            Vec::new()
+        };
+        DialogueEntry::Phrase(
+            speakers,
+            first.into_inner().peek().unwrap().as_str().to_string(),
+        )
+    }
+
+    fn parse_choice_statement(pair: Pair<'_, Rule>) -> DialogueEntry {
+        let inner = pair.into_inner().peek().unwrap();
+        let result = if inner.as_rule() == Rule::choice_group {
+            inner
+                .into_inner()
+                .map(|p| {
+                    let mut choice_pairs = p.into_inner();
+                    DialogueChoice {
+                        text: choice_pairs
+                            .next()
+                            .unwrap()
+                            .into_inner()
+                            .peek()
+                            .unwrap()
+                            .as_str()
+                            .to_string(),
+                        label: choice_pairs.next().unwrap().as_str().to_string(),
+                    }
+                })
+                .collect()
+        } else {
+            let mut choice_pairs = inner.into_inner();
+            vec![DialogueChoice {
+                text: choice_pairs
+                    .next()
+                    .unwrap()
+                    .into_inner()
+                    .peek()
+                    .unwrap()
+                    .as_str()
+                    .to_string(),
+                label: choice_pairs.next().unwrap().as_str().to_string(),
+            }]
+        };
+        DialogueEntry::Choice(result)
+    }
+
+    fn parse_jump_statement(pair: Pair<'_, Rule>) -> DialogueEntry {
+        DialogueEntry::Jump(pair.into_inner().peek().unwrap().as_str().to_string())
     }
 
     pub fn get(&self, index: usize) -> Option<&DialogueEntry> {

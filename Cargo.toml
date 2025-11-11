@@ -7,5 +7,7 @@ license = "MIT"
 description = "DialASM - simple pest based dialogue DSL for Rust"
 
 [dependencies]
+anyhow = "1.0.100"
 pest = "2.8.3"
 pest_derive = "2.8.3"
+thiserror = "2.0.17"

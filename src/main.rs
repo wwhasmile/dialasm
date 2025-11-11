@@ -1,3 +1,5 @@
+use anyhow::Result;
+use anyhow::*;
 use std::{
     collections::HashMap,
     env,
@@ -7,7 +9,7 @@ use std::{
 
 use dialasm::Dialogue;
 
-fn main() -> Result<(), i32> {
+fn main() -> Result<()> {
     let args: Vec<String> = env::args().collect();
     if args.len() != 2 {
         println!(
@@ -22,17 +24,13 @@ fn main() -> Result<(), i32> {
     let dlg: Dialogue = if path == "example" {
         Dialogue::example()
     } else {
-        let Ok(contents) = fs::read_to_string(path) else {
-            println!("Failed to open file '{}'", path);
-            return Err(1);
-        };
-        let Some(dlg) = Dialogue::parse(&contents) else {
-            println!("Failed to parse dialogue '{}'", path);
-            return Err(1);
-        };
-        dlg
+        let contents = fs::read_to_string(path)?;
+        match Dialogue::parse(&contents) {
+            Result::Ok(parsed) => parsed,
+            Err(e) => return Err(anyhow!(e)),
+        }
     };
-
+    
     let mut pointer: usize = 0;
     let mut speakers = HashMap::new();
     while pointer < dlg.len() {
@@ -42,10 +40,8 @@ fn main() -> Result<(), i32> {
                 pointer += 1;
             }
             dialasm::DialogueEntry::Phrase(h, t) => {
-                let speaker_names: Vec<&String> = h.iter().map(|x| {
-                    speakers[x]
-                }).collect();
-                println!("{:?}: {}", speaker_names, t);
+                let speaker_names = h.iter().map(|x| speakers[x].clone()).collect::<Vec<String>>().join(" & ");
+                print!("{}: {}", speaker_names, t);
                 io::stdout().flush().expect("Failed to flush stdout");
                 let mut buffer = String::new();
                 io::stdin()
@@ -64,37 +60,20 @@ fn main() -> Result<(), i32> {
                     io::stdin()
                         .read_line(&mut buffer)
                         .expect("Failed to read line from stdin");
-                    if let Ok(idx) = buffer.trim_end().parse::<usize>() {
+                    if let Result::Ok(idx) = buffer.trim_end().parse::<usize>() {
                         if idx < 1 || idx > choices.len() {
                             println!("Invalid choice index");
                             continue;
                         }
                         proceed = true;
-                        let mut exit = false;
-                        pointer = dlg.label(&choices[idx - 1].label).unwrap_or_else(|| {
-                            println!("Label '{}' doesn't exist", choices[idx].label);
-                            exit = true;
-                            0
-                        });
-                        if exit {
-                            return Err(2);
-                        }
+                        pointer = dlg.label(&choices[idx - 1].label).unwrap();
                     }
                 }
             }
             dialasm::DialogueEntry::Jump(l) => {
-                let mut exit = false;
-                pointer = dlg.label(l).unwrap_or_else(|| {
-                    println!("Label '{}' doesn't exist", l);
-                    exit = true;
-                    0
-                });
-                if exit {
-                    return Err(2);
-                }
+                pointer = dlg.label(l).unwrap();
             }
         }
     }
-
     Ok(())
 }
