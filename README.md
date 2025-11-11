@@ -116,7 +116,39 @@ To assign speaker to a phrase, you write it like this:
 
 `@m: "Hello! My name is Maria!";`
 
+We can make multiple speakers tell the same phrase too!
 
+`(@m & @l): "We are number one!";`
+
+### Choices
+What kind of dialogue is without choices? ...kinetic one. But `DialASM` supports choices in this format:
+
+`?: ("This is a choice a": a | "This is a choice b": b);`
+
+It starts with `?:` characters, and then is followed by the actual choices. Single choice is defined by it's text and jump label.
+Single choice can also be made:
+
+`?: "Bye": bye;`
+
+### Jumps
+Very useful thing that allows up to jump to any spot of the dialogue.
+
+`jump label;`
+
+This should make dialogue move to the point marked by this specific label.
+
+## Label
+As you've already seen, labels are used for choices and `jump` statements. The syntax to mark label is this:
+
+`a:`
+
+This will define label `a` to point at the instruction right next to it. Multiple labels can be put in a row, but they will point at the same instruction.
+Important: labels should be unique per file. Also, any label referred in choice or `jump` statement should exist in the actual source, otherwise parsing will fail.
+
+## Comments
+The least important thing, but very useful for documenting chapters. Only C-style comments are supported.
+
+`/* This is a comment. */`
 
 ## Grammar
 ```
