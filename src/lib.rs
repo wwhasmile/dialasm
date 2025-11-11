@@ -3,14 +3,18 @@ use std::{
     ops::Index,
 };
 
-use pest::{Parser, iterators::Pair};
+use pest::{Parser, error::Error, iterators::Pair};
 use pest_derive::Parser;
 use thiserror::Error;
 
+#[derive(Parser)]
+#[grammar = "dialasm.pest"]
+pub struct DialasmParser;
+
 #[derive(Error, Debug)]
 pub enum ParseError {
-    #[error("Invalid program")]
-    InvalidProgram,
+    #[error("Invalid program: {0}")]
+    InvalidProgram(Error<Rule>),
     #[error("Undefined speaker '{0}'")]
     UndefinedSpeaker(String),
     #[error("Undefined label '{0}'")]
@@ -18,10 +22,6 @@ pub enum ParseError {
     #[error("Duplicate label '{0}'")]
     DuplicateLabel(String),
 }
-
-#[derive(Parser)]
-#[grammar = "dialasm.pest"]
-pub struct DialasmParser;
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct DialogueChoice {
@@ -44,6 +44,7 @@ pub struct Dialogue {
 }
 
 impl Dialogue {
+    /// Example dialogue. Repeats the one from README.md
     pub fn example() -> Dialogue {
         let entries = vec![
             DialogueEntry::NameChange(String::from("m"), String::from("Maria")),
@@ -103,10 +104,9 @@ impl Dialogue {
         Dialogue { entries, labels }
     }
 
+    /// Parses source. If there is an error then it fails.
     pub fn parse(src: &str) -> Result<Dialogue, ParseError> {
-        let Ok(program) = DialasmParser::parse(Rule::program, src) else {
-            return Err(ParseError::InvalidProgram);
-        };
+        let program = DialasmParser::parse(Rule::program, src).map_err(|e| ParseError::InvalidProgram(e))?;
         let mut program_inner = program.peek().unwrap().into_inner();
         let mut labels = HashMap::new();
         let mut entries = Vec::new();
@@ -264,30 +264,37 @@ impl Dialogue {
         DialogueEntry::Jump(pair.into_inner().peek().unwrap().as_str().to_string())
     }
 
+    /// Safely get dialogue entry (instruction).
     pub fn get(&self, index: usize) -> Option<&DialogueEntry> {
         self.entries.get(index)
     }
 
+    /// Safely get instruction pointer from label name.
     pub fn label(&self, label: &str) -> Option<usize> {
         self.labels.get(label).copied()
     }
 
+    /// Returns immutable list of entries.
     pub fn entries(&self) -> &[DialogueEntry] {
         &self.entries
     }
 
+    /// Returns immutable map of labels to their pointers.
     pub fn labels(&self) -> &HashMap<String, usize> {
         &self.labels
     }
 
+    // Returns count of entries (instruction).
     pub fn len(&self) -> usize {
         self.entries.len()
     }
 
+    // If there are any entries.
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }
 
+    // Count of labels.
     pub fn label_count(&self) -> usize {
         self.labels.len()
     }

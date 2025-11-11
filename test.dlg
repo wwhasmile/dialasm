@@ -1,0 +1,25 @@
+/* as you can see here. */
+@m = "Maria"; /* This is a name assignment. */
+@l = "Leon"; /* Another name assignment */
+
+: "This is a phrase told by... well, nobody.";
+@m: "Hello, my name is Maria!";
+@l: "Hello, my name is Leon.";
+(@m & @l): "And we can talk together as well!";
+@m: "Now, you pick where to go!";
+
+? ("I pick A": a | "I pick B": b); /* Choices are important to make! */
+
+a: /* Labels can be used for choices... */
+@m: "Excellent choice!";
+jump last; /* ...or for jumps. */
+
+b:
+@l: "Certainly better choice.";
+
+last:
+(@l & @m): "Now, last choice... well, you only have one.";
+? "Byeee!": end;
+
+end:
+@m: "Goodbye!";

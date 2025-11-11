@@ -1,23 +1,39 @@
 WHITESPACE = _{ " " | "\r" | "\n" | "\t" }
 
+/// Responsible for identifiers. Identifiers may contain latin letters, digits, and underscores. They can't start with digits.
 identifier = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+/// String content. It's here for the actual parsing so quotes are not included.
 string_content = { (!"\"" ~ (!"\\" ~ ANY) | "\\" ~ ANY)* }
+/// The actual string literal parsed from the source, just string content wrapped with quotes.
 string_literal = ${ "\"" ~ string_content ~ "\"" }
 
+/// Speaker (character) handle. Example: @m
 handle = ${ "@" ~ identifier }
+/// Group of handles for phrases with multiple speakers. Wrapped in parenthesis and are separated with "&"
 handle_group = { "(" ~ handle ~ ("&" ~ handle)* ~ ")" }
+/// Single choice in format "text": jump label.
 choice = { string_literal ~ ":" ~ identifier }
+/// Group of multiple choices. Wrapped in parenthesis and are separated with pipes.
 choice_group = { "(" ~ choice ~ ("|" ~ choice)* ~ ")" }
 
+/// Defines jump label. Only one jump label with such name can be defined.
 label = ${ identifier ~ ":" }
+/// Name assignment to a speaker with handle. Example: @m = "Maria"
 name_statement = { handle ~ "=" ~ string_literal }
+/// Phrase statement, shows the actual content of dialogue. Can be spoken by anonymous speaker (no handle), one speaker, or group of speakers.
 phrase_statement = { (handle | handle_group)? ~ ":" ~ string_literal }
+/// Choice statement, in format "?: <choices>". Can be single or group of choices.
 choice_statement = { "?" ~ (choice | choice_group) }
+/// Jumps to certain label. Label should actually exist.
 jump_statement = { "jump" ~ identifier }
 
+/// The actual dialogue flow statement.
 dialogue_statement = { (name_statement | phrase_statement | choice_statement | jump_statement) ~ ";" }
 
+/// Either dialogue statement, or label definition. The highest unit of program.
 statement = { dialogue_statement | label }
+/// Comments are ignored.
 comment = _{ ("/*" ~ (!"*/" ~ ANY)* ~ "*/") }
 
+/// Parses set of either statements or comments. Empty input is completely valid.
 program = { SOI ~ (statement | comment)* ~ EOI }

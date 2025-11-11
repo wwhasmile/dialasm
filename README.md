@@ -98,3 +98,49 @@ fn main() {
 }
 ```
 `Dialogue::parse(src)` walks over every statement in the source text. There are two types of statements: dialogue statements which are responsible for the flow of the dialogue (all of them end with semicolon), and jump labels, either used by `jump` instructions, or by choices. What is parsed is then converted into `Dialogue` struct. It doesn't contain any logic of executing dialogues on it's own, but it contains data relevant for implementing the actual engine for executing it. It mainly contains array of entries which represent each statement in the source text, with the exception of jump labels which are stored separately and store indices for their respective entries. Jump labels can be accessed via instance function `Dialogue::label(name)`.
+# The language:
+## Flow statements
+You have four main flow statements.
+### Name assignment
+Your characters need names. In order to assign them, you use handles. Like in social media like Twitter, or Discord, these are ids of character.
+
+`@m = "Maria";`
+
+This will assign a name "Maria" to speaker `@m`. Note that you cannot use character whose name was not set, as such character doesn't exist.
+### Phrase
+The actual content of the dialogue. You would expect a speaker being specified, but you actually can do anonymous phrases as well:
+
+`: "This is an anonymous phrase.";`
+
+To assign speaker to a phrase, you write it like this:
+
+`@m: "Hello! My name is Maria!";`
+
+
+
+## Grammar
+```
+WHITESPACE = _{ " " | "\r" | "\n" | "\t" }
+
+identifier = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+string_content = { (!"\"" ~ (!"\\" ~ ANY) | "\\" ~ ANY)* }
+string_literal = ${ "\"" ~ string_content ~ "\"" }
+
+handle = ${ "@" ~ identifier }
+handle_group = { "(" ~ handle ~ ("&" ~ handle)* ~ ")" }
+choice = { string_literal ~ ":" ~ identifier }
+choice_group = { "(" ~ choice ~ ("|" ~ choice)* ~ ")" }
+
+label = ${ identifier ~ ":" }
+name_statement = { handle ~ "=" ~ string_literal }
+phrase_statement = { (handle | handle_group)? ~ ":" ~ string_literal }
+choice_statement = { "?" ~ (choice | choice_group) }
+jump_statement = { "jump" ~ identifier }
+
+dialogue_statement = { (name_statement | phrase_statement | choice_statement | jump_statement) ~ ";" }
+
+statement = { dialogue_statement | label }
+comment = _{ ("/*" ~ (!"*/" ~ ANY)* ~ "*/") }
+
+program = { SOI ~ (statement | comment)* ~ EOI }
+```
