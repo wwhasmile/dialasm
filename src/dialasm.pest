@@ -22,7 +22,7 @@ label = ${ identifier ~ ":" }
 name_statement = { handle ~ "=" ~ string_literal }
 /// Phrase statement, shows the actual content of dialogue. Can be spoken by anonymous speaker (no handle), one speaker, or group of speakers.
 phrase_statement = { (handle | handle_group)? ~ ":" ~ string_literal }
-/// Choice statement, in format "?: <choices>". Can be single or group of choices.
+/// Choice statement, in format "? <choices>". Can be single or group of choices.
 choice_statement = { "?" ~ (choice | choice_group) }
 /// Jumps to certain label. Label should actually exist.
 jump_statement = { "jump" ~ identifier }
