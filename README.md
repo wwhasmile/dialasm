@@ -123,7 +123,7 @@ We can make multiple speakers tell the same phrase too!
 ### Choices
 What kind of dialogue is without choices? ...kinetic one. But `DialASM` supports choices in this format:
 
-`?: ("This is a choice a": a | "This is a choice b": b);`
+`? ("This is a choice a": a | "This is a choice b": b);`
 
 It starts with `?` character, and then is followed by the actual choices. Single choice is defined by it's text and jump label.
 Single choice can also be made:
