@@ -14,7 +14,7 @@ pub struct DialasmParser;
 #[derive(Error, Debug)]
 pub enum ParseError {
     #[error("Invalid program: {0}")]
-    InvalidProgram(Error<Rule>),
+    InvalidProgram(Box<Error<Rule>>),
     #[error("Undefined speaker '{0}'")]
     UndefinedSpeaker(String),
     #[error("Undefined label '{0}'")]
@@ -106,7 +106,7 @@ impl Dialogue {
 
     /// Parses source. If there is an error then it fails.
     pub fn parse(src: &str) -> Result<Dialogue, ParseError> {
-        let program = DialasmParser::parse(Rule::program, src).map_err(|e| ParseError::InvalidProgram(e))?;
+        let program = DialasmParser::parse(Rule::program, src).map_err(|e| ParseError::InvalidProgram(Box::new(e)))?;
         let mut program_inner = program.peek().unwrap().into_inner();
         let mut labels = HashMap::new();
         let mut entries = Vec::new();
